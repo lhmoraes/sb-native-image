@@ -1,6 +1,6 @@
 
 // Application Dependency Management .......................
-rootProject.name = "kinder"
+rootProject.name = "native"
 
 include ("mod-domain")
 include ("mod-business")
