@@ -6,6 +6,7 @@ import org.springframework.boot.gradle.tasks.bundling.BootJar
     // Dependencies Project Modules............................................
     dependencies {
         implementation(project(":mod-domain"))
+		implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     }
 
 //    // Tasks ..................................................................
