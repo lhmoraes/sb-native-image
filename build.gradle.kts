@@ -1,28 +1,20 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
 
 plugins {
-    id("org.springframework.boot") version "2.4.3"
     id("io.spring.dependency-management") version "1.0.11.RELEASE"
-    id("org.springframework.experimental.aot") version "0.9.0"
+    id("org.springframework.boot") version "2.4.3" apply false
+    id("org.springframework.experimental.aot") version "0.9.0" apply false
 
     kotlin("jvm") version "1.4.30"
     kotlin("plugin.spring") version "1.4.30"
-    kotlin("kapt") version "1.4.30"
-
-    base
-    java
 }
 
 allprojects {
 
     // Apply plugins for the all sub-projects .......................
-    apply(plugin = "java")
-    apply(plugin = "base")
+    apply(plugin = "java-library")
     apply(plugin = "kotlin")
     apply(plugin = "kotlin-spring")
-    apply(plugin = "kotlin-kapt")
-    apply(plugin = "org.springframework.boot")
     apply(plugin = "io.spring.dependency-management")
 
     // Project configuration ........................................
@@ -43,22 +35,16 @@ allprojects {
     base.archivesBaseName    = rootProject.name
     java.sourceCompatibility = JavaVersion.VERSION_11
 
+	dependencyManagement {
+		imports {
+			mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
+			mavenBom("org.springframework.cloud:spring-cloud-dependencies:${SPRING_CLOUD_VERSION}")
+			mavenBom("com.wavefront:wavefront-spring-boot-bom:${WAVEFRONT_VERSION}")
+		}
+	}
+
     // Dependencies Libraries .........................................
     dependencies {
-
-        // Spring Framework ..........
-        implementation("org.springframework.boot:spring-boot-starter-actuator")
-        implementation("org.springframework.boot:spring-boot-starter-webflux")
-        implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
-        implementation("org.springframework.cloud:spring-cloud-starter-sleuth")
-        developmentOnly("org.springframework.boot:spring-boot-devtools")
-
-        // Spring Native Image ..............
-        implementation("org.springframework.experimental:spring-native:0.9.0")
-
-        // Spring Kubernetes ................
-        implementation("org.springframework.cloud:spring-cloud-starter-kubernetes-client-config")
-        implementation("org.springframework.cloud:spring-cloud-kubernetes-fabric8-istio")
 
         // Kotlin ....................
         implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
@@ -87,7 +73,6 @@ allprojects {
 
         // MapStruct .................
         implementation("org.mapstruct:mapstruct:${MAPSTRUCT_VERSION}")
-        kapt("org.mapstruct:mapstruct-processor:${MAPSTRUCT_VERSION}")
 
         // SpringDoc-OpenApi .........
         implementation("org.springdoc:springdoc-openapi-webflux-ui:${SPRING_DOC_OPENAPI_VERSION}")
@@ -101,31 +86,16 @@ allprojects {
         testImplementation("io.projectreactor:reactor-test")
     }
 
-    // Spring Cloud dependency management .....................................
-    dependencyManagement {
-        imports {
-            mavenBom("org.springframework.cloud:spring-cloud-dependencies:${SPRING_CLOUD_VERSION}")
-            mavenBom("com.wavefront:wavefront-spring-boot-bom:${WAVEFRONT_VERSION}")
-        }
-    }
+
 
     // Dependencies repositories .....................................
     repositories {
-        maven { url = uri( "https://repo.spring.io/release") }
-        maven { url = uri( "https://repo.spring.io/milestone") }
-        maven { url = uri( "https://repo.spring.io/snapshot") }
         mavenCentral()
+        maven { url = uri( "https://repo.spring.io/release") }
     }
 
     // Tasks ..................................................................
     tasks {
-        getByName<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
-            enabled = true
-        }
-        getByName<Jar>("jar") {
-            enabled = true
-        }
-
         withType<Test> {
             useJUnitPlatform()
         }
@@ -137,9 +107,5 @@ allprojects {
             }
         }
 
-        withType<BootBuildImage> {
-            builder = "paketobuildpacks/builder:tiny"
-            environment = mapOf("BP_NATIVE_IMAGE" to "true")
-        }
     }
 }
