@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+
+    <!-- Properties Configuration ............................................................. -->
+    <property name="APP_VERSION"      value="1.0.RELEASE" />
+
+    <springProfile name="dev">
+        <property name="APP_NAME"         value="sigfox-callback-dev" />
+        <property name="APP_ENVIRONMENT"  value="DEVELOPMENT" />
+        <property name="APP_LOG_DIR"      value="/Users/luiz.henrique/log/sigfox/callback" />
+        <property name="APP_LOG_FILENAME" value="sigfox_callback_dev.log" />
+    </springProfile>
+    <springProfile name="uat">
+        <property name="APP_NAME"         value="sigfox-callback-uat" />
+        <property name="APP_ENVIRONMENT"  value="UAT" />
+        <property name="APP_LOG_DIR"      value="/var/log/sigfox/callback" />
+        <property name="APP_LOG_FILENAME" value="sigfox_callback_uat.log" />
+    </springProfile>
+    <springProfile name="prod">
+        <property name="APP_NAME"         value="sigfox-callback-prod" />
+        <property name="APP_ENVIRONMENT"  value="PRODUCTION" />
+        <property name="APP_LOG_DIR"      value="/var/log/sigfox/callback" />
+        <property name="APP_LOG_FILENAME" value="sigfox_callback_prod.log" />
+    </springProfile>
+
+    <!-- Appenders ............................................................................ -->
+    <!-- Configure the Console appender -->
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%green(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] - %yellow(%C{1.}):[%t] %msg%n%throwable</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Configure the Rolling File appender -->
+    <appender name="LogRollingFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${APP_LOG_DIR}/${APP_LOG_FILENAME}</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p ${PID:- } [%t] --- %-40.40logger{39} : %m%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>${APP_LOG_DIR}/${APP_LOG_FILENAME}_%i.zip</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>10</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>1000MB</maxFileSize>
+        </triggeringPolicy>
+    </appender>
+
+    <!-- Configure the Sentry appender, overriding the logging threshold to the WARN level
+         https://docs.sentry.io/platforms/java/guides/logback/ -->
+    <appender name="Sentry" class="io.sentry.logback.SentryAppender">
+        <options>
+            <dsn>https://e898ec7a5a844b638b827b51e2e1ff61@error.parlacom.net:8081/2</dsn>
+            <environment>${APP_ENVIRONMENT}</environment>
+            <release>${APP_VERSION}</release>
+            <attachThreads>true</attachThreads>
+            <attachStacktrace>true</attachStacktrace>
+        </options>
+        <!-- Optionally change minimum Event level. Default for Events is ERROR -->
+        <minimumEventLevel>ERROR</minimumEventLevel>
+    </appender>
+
+    <!-- Configure the Grafana Loki appender logging
+         https://loki4j.github.io/loki-logback-appender/ -->
+    <appender name="Loki" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>https://logging.parlacom.net:8081/loki/api/v1/push</url>
+        </http>
+        <format>
+            <label>
+                <pattern>app=${APP_NAME},host=${HOSTNAME},level=%level</pattern>
+            </label>
+            <message>
+                <pattern>%green(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] - %yellow(%C{1.}):[%t] %msg%n%throwable</pattern>
+            </message>
+            <sortByTime>true</sortByTime>
+        </format>
+    </appender>
+
+    <!-- Enable INFO appender -->
+    <root level="INFO">
+        <appender-ref ref="Console" />
+        <appender-ref ref="LogRollingFile" />
+        <appender-ref ref="Loki" />
+        <appender-ref ref="Sentry" />
+    </root>
+
+</configuration>
